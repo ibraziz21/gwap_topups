@@ -5,9 +5,13 @@ import { CFG } from './config'
 // 1. addresses
 const FACTORY   = '0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC' // Optimism factory
 const SINGLETON = '0x3E5c63644E683549055b9Be8653de26E0B4CD36E'
-const REGISTRY  = '0xaE00377a40B8b14e5f92E28A945c7DdA615b2B46'
+const REGISTRY  = '0xae00377a40b8b14e5f92e28a945c7dda615b2b46'
 const OWNER_SAFE = process.env.MAIN_SAFE!
 
+export async function createSafe(): Promise<{
+  address: string
+  txHash : string
+}> {
 // 2. init data for the Safe singleton
 const safeInterface = new ethers.Interface([
   'function setup(address[] owners,uint256 threshold,address to,bytes data,address fallbackHandler,address paymentToken,uint256 payment,address payable paymentReceiver)'
@@ -27,7 +31,7 @@ const saltNonce = Date.now().toString()
 const factory = new ethers.Contract(FACTORY, SafeProxyFactoryAbi, signer)
 
 
-async function main() {
+
 
 const tx = await factory.createProxyWithCallback(
   SINGLETON,
@@ -37,11 +41,14 @@ const tx = await factory.createProxyWithCallback(
 )
 console.log('tx sent:', tx.hash)
 const receipt = await tx.wait()
-const proxyAddr = receipt.logs[0].address   // first log is ProxyCreationL2
-console.log('new proxy:', proxyAddr)
+
+const eventSig = factory.interface.getEvent('ProxyCreation')!.topicHash
+const log      = receipt.logs.find((l: { topics: string[] }) => l.topics[1] === eventSig) ?? receipt.logs[0]
+const proxy    = ethers.getAddress(log.address)  
+
+console.log(`proxy    : ${proxy}`)
+console.log(`explorer : https://optimistic.etherscan.io/tx/${tx.hash}`)
+
+return { address: proxy, txHash: tx.hash }
 }
 
-main().catch(err => {
-    console.error(err)
-    process.exit(1)
-  })

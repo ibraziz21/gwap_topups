@@ -24,7 +24,11 @@ npm install
 cp .env.example .env       # then edit RPC_URL, PK, MAIN_SAFE, …
 
 # 3. Install packages and run
-npx ts-node src/createProxyWithCallback.ts
+npx ts-node src/routes/wallet.ts
+
+#4. Call the API URL with the correct port to create a new wallet
+curl -X POST http://localhost:8080/wallet | jq
+
 
 ```
 ---
@@ -42,7 +46,7 @@ Gas paying signer(To be replaced by connected user)
 Parent Safe that will own all proxies created
 ```
 
-## 🔗 Key contract addresses (Arbitrum mainnet)
+## 🔗 Key contract addresses (Optimism mainnet)
 
 ```bash
 Singleton (Safe v1.3.0)	0x3E5c63644E683549055b9Be8653de26E0B4CD36E
