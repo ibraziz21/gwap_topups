@@ -5,7 +5,7 @@
       "moduleResolution": "Node",
       "esModuleInterop": true,
       "strict": true,
-      "outDir": "dist",
+      "outDir": "WalletCreation/dist",
       "resolveJsonModule": true,
       "skipLibCheck": true
     },
