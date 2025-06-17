@@ -6,25 +6,24 @@ import {
   beforeAll,
   afterAll
 } from "matchstick-as/assembly/index"
-import { Address } from "@graphprotocol/graph-ts"
-import { AdminChanged } from "../generated/schema"
-import { AdminChanged as AdminChangedEvent } from "../generated/FiatTokenProxy/FiatTokenProxy"
-import { handleAdminChanged } from "../src/fiat-token-proxy"
-import { createAdminChangedEvent } from "./fiat-token-proxy-utils"
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts"
+import { Approval } from "../generated/schema"
+import { Approval as ApprovalEvent } from "../generated/UsdcProxy/UsdcProxy"
+import { handleApproval } from "../src/usdc-proxy"
+import { createApprovalEvent } from "./usdc-proxy-utils"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/developer/matchstick/#tests-structure-0-5-0
 
 describe("Describe entity assertions", () => {
   beforeAll(() => {
-    let previousAdmin = Address.fromString(
+    let owner = Address.fromString("0x0000000000000000000000000000000000000001")
+    let spender = Address.fromString(
       "0x0000000000000000000000000000000000000001"
     )
-    let newAdmin = Address.fromString(
-      "0x0000000000000000000000000000000000000001"
-    )
-    let newAdminChangedEvent = createAdminChangedEvent(previousAdmin, newAdmin)
-    handleAdminChanged(newAdminChangedEvent)
+    let value = BigInt.fromI32(234)
+    let newApprovalEvent = createApprovalEvent(owner, spender, value)
+    handleApproval(newApprovalEvent)
   })
 
   afterAll(() => {
@@ -34,21 +33,27 @@ describe("Describe entity assertions", () => {
   // For more test scenarios, see:
   // https://thegraph.com/docs/en/developer/matchstick/#write-a-unit-test
 
-  test("AdminChanged created and stored", () => {
-    assert.entityCount("AdminChanged", 1)
+  test("Approval created and stored", () => {
+    assert.entityCount("Approval", 1)
 
     // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
     assert.fieldEquals(
-      "AdminChanged",
+      "Approval",
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "previousAdmin",
+      "owner",
       "0x0000000000000000000000000000000000000001"
     )
     assert.fieldEquals(
-      "AdminChanged",
+      "Approval",
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "newAdmin",
+      "spender",
       "0x0000000000000000000000000000000000000001"
+    )
+    assert.fieldEquals(
+      "Approval",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
+      "value",
+      "234"
     )
 
     // More assert options:

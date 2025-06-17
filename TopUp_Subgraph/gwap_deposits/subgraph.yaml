@@ -5,25 +5,70 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: FiatTokenProxy
+    name: UsdcProxy
     network: optimism
     source:
-      address: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85"
-      abi: FiatTokenProxy
-      startBlock: 38198364
+      address: "0xded3b9a8dbedc2f9cb725b55d0e686a81e6d06dc"
+      abi: UsdcProxy
+      startBlock: 113187136
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - AdminChanged
-        - Upgraded
+        - Approval
+        - AuthorizationCanceled
+        - AuthorizationUsed
+        - Blacklisted
+        - BlacklisterChanged
+        - Burn
+        - MasterMinterChanged
+        - Mint
+        - MinterConfigured
+        - MinterRemoved
+        - OwnershipTransferred
+        - Pause
+        - PauserChanged
+        - RescuerChanged
+        - Transfer
+        - UnBlacklisted
+        - Unpause
       abis:
-        - name: FiatTokenProxy
-          file: ./abis/FiatTokenProxy.json
+        - name: UsdcProxy
+          file: ./abis/UsdcProxy.json
       eventHandlers:
-        - event: AdminChanged(address,address)
-          handler: handleAdminChanged
-        - event: Upgraded(address)
-          handler: handleUpgraded
-      file: ./src/fiat-token-proxy.ts
+        - event: Approval(indexed address,indexed address,uint256)
+          handler: handleApproval
+        - event: AuthorizationCanceled(indexed address,indexed bytes32)
+          handler: handleAuthorizationCanceled
+        - event: AuthorizationUsed(indexed address,indexed bytes32)
+          handler: handleAuthorizationUsed
+        - event: Blacklisted(indexed address)
+          handler: handleBlacklisted
+        - event: BlacklisterChanged(indexed address)
+          handler: handleBlacklisterChanged
+        - event: Burn(indexed address,uint256)
+          handler: handleBurn
+        - event: MasterMinterChanged(indexed address)
+          handler: handleMasterMinterChanged
+        - event: Mint(indexed address,indexed address,uint256)
+          handler: handleMint
+        - event: MinterConfigured(indexed address,uint256)
+          handler: handleMinterConfigured
+        - event: MinterRemoved(indexed address)
+          handler: handleMinterRemoved
+        - event: OwnershipTransferred(address,address)
+          handler: handleOwnershipTransferred
+        - event: Pause()
+          handler: handlePause
+        - event: PauserChanged(indexed address)
+          handler: handlePauserChanged
+        - event: RescuerChanged(indexed address)
+          handler: handleRescuerChanged
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: UnBlacklisted(indexed address)
+          handler: handleUnBlacklisted
+        - event: Unpause()
+          handler: handleUnpause
+      file: ./src/usdc-proxy.ts

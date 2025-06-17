@@ -1,8 +1,8 @@
 {
   "optimism": {
-    "FiatTokenProxy": {
-      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
-      "startBlock": 38198364
+    "UsdcProxy": {
+      "address": "0xded3b9a8dbedc2f9cb725b55d0e686a81e6d06dc",
+      "startBlock": 113187136
     }
   }
 }
