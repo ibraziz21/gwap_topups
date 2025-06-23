@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import SafeProxyFactoryAbi from '../../abi.json'
+import SafeProxyFactoryAbi from '../abi.json'
 import { CFG } from './config'
 
 // 1. addresses
@@ -16,10 +16,18 @@ export async function createSafe(): Promise<{
   const safeInterface = new ethers.Interface([
     'function setup(address[] owners,uint256 threshold,address to,bytes data,address fallbackHandler,address paymentToken,uint256 payment,address payable paymentReceiver)'
   ])
+
+  const safeIface = new ethers.Interface([
+    "function enableModule(address)"
+  ]);
+  const ENABLE_DATA = safeIface.encodeFunctionData(
+    "enableModule",
+    ["0x62dA5B4722Fe31B0C3e882bBdd12d9F38b7e660e"]   // your module
+  );
   const initData = safeInterface.encodeFunctionData('setup', [
     [OWNER_SAFE], // owners[]
     1,            // threshold
-    ethers.ZeroAddress, '0x', ethers.ZeroAddress, ethers.ZeroAddress, 0, ethers.ZeroAddress
+    ethers.ZeroAddress, ENABLE_DATA, ethers.ZeroAddress, ethers.ZeroAddress, 0, ethers.ZeroAddress
   ])
 
   const provider = new ethers.JsonRpcProvider(CFG.rpc, CFG.chainId)

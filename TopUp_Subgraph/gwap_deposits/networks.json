@@ -1,8 +1,0 @@
-{
-  "optimism": {
-    "UsdcProxy": {
-      "address": "0xded3b9a8dbedc2f9cb725b55d0e686a81e6d06dc",
-      "startBlock": 113187136
-    }
-  }
-}
