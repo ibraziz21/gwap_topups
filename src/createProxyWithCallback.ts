@@ -1,62 +1,78 @@
-import { ethers } from 'ethers'
-import SafeProxyFactoryAbi from '../abi.json'
-import { CFG } from './config'
+/* createSafe.ts – deterministic Safe proxy on multiple chains
+   ------------------------------------------------------------
+   pnpm add ethers@6          # or yarn add ethers@6
+*/
 
-// 1. addresses
-const FACTORY = '0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC' // Optimism factory
-const SINGLETON = '0x3E5c63644E683549055b9Be8653de26E0B4CD36E'
-const REGISTRY = '0xae00377a40b8b14e5f92e28a945c7dda615b2b46'
-const OWNER_SAFE = process.env.MAIN_SAFE!
+import { ethers } from 'ethers';
+import SafeFactoryAbi from '../abi.json'; 
+import { CFG } from './config';     // GnosisSafeProxyFactory ABI
 
-export async function createSafe(): Promise<{
-  address: string
-  txHash: string
-}> {
-  // 2. init data for the Safe singleton
-  const safeInterface = new ethers.Interface([
-    'function setup(address[] owners,uint256 threshold,address to,bytes data,address fallbackHandler,address paymentToken,uint256 payment,address payable paymentReceiver)'
-  ])
+/* ── 1. shared constants ─────────────────────────────────────── */
+const SINGLETON = '0x3E5c63644E683549055b9Be8653de26E0B4CD36E'; // Safe v1.4.x
+const OWNER     = CFG.mainSafe                      // main Safe EOA
+const SALT      = ethers.id('global-safe-v1'); 
+console.log(OWNER)                 // 32-byte salt
 
-  const safeIface = new ethers.Interface([
-    "function enableModule(address)"
+/* ── 2. per-chain settings (factory must live at same addr) ─── */
+const CHAINS = [
+  {
+    name:     'Optimism',
+    factory:  '0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC',
+    rpc:      'https://mainnet.optimism.io',
+    chainId:  10,
+    explorer: 'https://optimistic.etherscan.io/tx/',
+    pk:       CFG.pk,      // funded relayer
+  },
+  {
+    name:     'Celo',
+    factory:  '0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC', // same addr
+    rpc:      'https://forno.celo.org',
+    chainId:  42220,
+    explorer: 'https://explorer.celo.org/mainnet/tx/',
+    pk:       CFG.pk!,
+  },
+] as const;
+
+/* ── 3. initData helper (no module, no fallback) ─────────────── */
+function buildInitData(): string {
+  const iface = new ethers.Interface([
+    'function setup(address[],uint256,address,bytes,address,address,uint256,address)',
   ]);
-  const ENABLE_DATA = safeIface.encodeFunctionData(
-    "enableModule",
-    ["0x62dA5B4722Fe31B0C3e882bBdd12d9F38b7e660e"]   // your module
-  );
-  const initData = safeInterface.encodeFunctionData('setup', [
-    [OWNER_SAFE], // owners[]
-    1,            // threshold
-    ethers.ZeroAddress, ENABLE_DATA, ethers.ZeroAddress, ethers.ZeroAddress, 0, ethers.ZeroAddress
-  ])
 
-  const provider = new ethers.JsonRpcProvider(CFG.rpc, CFG.chainId)
-  const signer = new ethers.Wallet(CFG.pk, provider)
-  // 3. derive a saltNonce (string)
-  const saltNonce = Date.now().toString()
-
-  // 4. call the factory
-  const factory = new ethers.Contract(FACTORY, SafeProxyFactoryAbi, signer)
-
-
-
-
-  const tx = await factory.createProxyWithCallback(
-    SINGLETON,
-    initData,
-    saltNonce,
-    REGISTRY
-  )
-  console.log('tx sent:', tx.hash)
-  const receipt = await tx.wait()
-
-  const eventSig = factory.interface.getEvent('ProxyCreation')!.topicHash
-  const log = receipt.logs.find((l: { topics: string[] }) => l.topics[1] === eventSig) ?? receipt.logs[0]
-  const proxy = ethers.getAddress(log.address)
-
-  console.log(`proxy    : ${proxy}`)
-  console.log(`explorer : https://optimistic.etherscan.io/tx/${tx.hash}`)
-
-  return { address: proxy, txHash: tx.hash }
+  return iface.encodeFunctionData('setup', [
+    [OWNER],           // owners[]
+    1,                 // threshold
+    ethers.ZeroAddress,
+    '0x',              // no delegate call
+    ethers.ZeroAddress, ethers.ZeroAddress, 0, ethers.ZeroAddress,
+  ]);
 }
 
+/* ── 4. main loop ─────────────────────────────────────────────── */
+(async () => {
+  const initData = buildInitData();
+
+  for (const cfg of CHAINS) {
+    const provider = new ethers.JsonRpcProvider(cfg.rpc, cfg.chainId);
+    const signer   = new ethers.Wallet(cfg.pk, provider);
+    const factory  = new ethers.Contract(cfg.factory, SafeFactoryAbi, signer);
+
+    console.log(`\n🚀 Deploying on ${cfg.name}…`);
+
+    
+
+    const tx = await factory.createProxyWithNonce(
+      SINGLETON,
+      initData,
+      SALT,
+      { gasLimit: 3_000_000 },
+    );
+    console.log('tx sent:', tx.hash);
+
+    const rc = await tx.wait();
+    const proxy = rc.logs[0].address;
+
+    console.log(`✅ proxy ${cfg.name}: ${proxy}`);
+    console.log(`🔗 ${cfg.explorer}${tx.hash}`);
+  }
+})();
